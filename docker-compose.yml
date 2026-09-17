@@ -12,3 +12,9 @@ services:
       - PYTHONUNBUFFERED=1
     command: streamlit run src/app.py --server.port=8501 --server.address=0.0.0.0
     restart: unless-stopped
+    networks:
+      - mlops-net
+
+networks:
+  mlops-net:
+    external: true
