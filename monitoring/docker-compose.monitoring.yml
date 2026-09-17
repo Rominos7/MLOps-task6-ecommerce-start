@@ -1,0 +1,67 @@
+services:
+  prometheus:
+    image: prom/prometheus:v2.55.1
+    container_name: mlops-prometheus
+    volumes:
+      - ./prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - prometheus-data:/prometheus
+    ports:
+      - "9090:9090"
+    networks:
+      - mlops-net
+    restart: unless-stopped
+
+  grafana:
+    image: grafana/grafana:11.3.0
+    container_name: mlops-grafana
+    environment:
+      - GF_SECURITY_ADMIN_USER=admin
+      - GF_SECURITY_ADMIN_PASSWORD=admin
+      - GF_AUTH_ANONYMOUS_ENABLED=false
+    volumes:
+      - ./grafana/datasources.yml:/etc/grafana/provisioning/datasources/datasources.yml:ro
+      - grafana-data:/var/lib/grafana
+    ports:
+      - "3000:3000"
+    networks:
+      - mlops-net
+    depends_on:
+      - prometheus
+      - loki
+    restart: unless-stopped
+
+  loki:
+    image: grafana/loki:3.2.1
+    container_name: mlops-loki
+    command: -config.file=/etc/loki/config.yml
+    volumes:
+      - ./loki/config.yml:/etc/loki/config.yml:ro
+      - loki-data:/loki
+    ports:
+      - "3100:3100"
+    networks:
+      - mlops-net
+    restart: unless-stopped
+
+  promtail:
+    image: grafana/promtail:3.2.1
+    container_name: mlops-promtail
+    command: -config.file=/etc/promtail/config.yml
+    volumes:
+      - ./loki/promtail-config.yml:/etc/promtail/config.yml:ro
+      - /var/lib/docker/containers:/var/lib/docker/containers:ro
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    networks:
+      - mlops-net
+    depends_on:
+      - loki
+    restart: unless-stopped
+
+networks:
+  mlops-net:
+    external: true
+
+volumes:
+  prometheus-data:
+  grafana-data:
+  loki-data:
